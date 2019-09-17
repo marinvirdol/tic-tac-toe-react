@@ -43,6 +43,37 @@ class Board extends React.Component {
   }
 }
 
+class Move extends React.Component {
+  render() {
+    const desc = this.props.step.move ?
+      `Go to move #${this.props.step.move}; col: ${this.props.step.col}; row: ${this.props.step.row} `:
+      'Go to game start';
+    const boldStyle = this.props.step.selected ? {fontWeight: 'bold'} : {};
+    return (
+      <li style={boldStyle}>
+        <button onClick={() => this.props.onSelect(this.props.step.move)}>
+          <span style={boldStyle}>{desc}</span>
+        </button>
+      </li>
+    );
+  }
+}
+
+class Moves extends React.Component {
+  render() {
+    const moves = this.props.history.map((step, move) => {
+      return (
+        <Move key={move} step={step} onSelect={(move) => this.props.onSelect(move)}></Move>
+      );
+    });
+    return (
+      <ol>
+        {moves}
+      </ol>
+    );
+  }
+}
+
 class Game extends React.Component {
   constructor(props) {
     super(props);
@@ -52,9 +83,11 @@ class Game extends React.Component {
         col: null,
         row: null,
         selected: false,
+        move: 0
       }],
       xIsNext: true,
       stepNumber: 0,
+      ascending: true
     };
   }
 
@@ -67,8 +100,10 @@ class Game extends React.Component {
 
     squares[index] = this.state.xIsNext ? 'X' : 'O';
 
+    const unSelectMoves = history.map(h => ({...h, ...{selected: false}}));
+
     this.setState({
-      history: history.concat([{squares, col, row, selected: false}]),
+      history: unSelectMoves.concat([{squares, col, row, selected: false, move: history.length}]),
       xIsNext: !this.state.xIsNext,
       stepNumber: history.length,
     })
@@ -76,32 +111,25 @@ class Game extends React.Component {
 
   jumpTo(step) {
     this.setState({
-      history: this.state.history.map((s, move) => move === step ? {...s, ...{selected: true}} : {...s, ...{selected: false}}),
+      history: this.state.history.map((s, move) => s.move === step ? {...s, ...{selected: true}} : {...s, ...{selected: false}}),
       stepNumber: step,
       xIsNext: (step % 2) === 0
     });
+  }
+
+  handleSort() {
+    const unSelectMoves = this.state.history.map(h => ({...h, ...{selected: false}}));
+    this.setState({
+      history: unSelectMoves.sort((a, b) => this.state.ascending ? b.move - a.move : a.move - b.move),
+      ascending: !this.state.ascending,
+      stepNumber: 0
+    })
   }
 
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
-
-    const moves = history.map((step, move) => {
-      const desc =  move ?
-        `Go to move #${move}; col: ${step.col}; row: ${step.row} `:
-        'Go to game start';
-
-      const boldStyle = step.selected ? {fontWeight: 'bold'} : {};
-
-      return (
-        <li key={move} style={boldStyle}>
-          <button onClick={() => this.jumpTo(move)}>
-            <span style={boldStyle}>{desc}</span>
-          </button>
-        </li>
-      );
-    });
 
     let status;
     if (winner) {
@@ -119,8 +147,9 @@ class Game extends React.Component {
           />
         </div>
         <div className="game-info">
+          <button type="button" onClick={() => this.handleSort()}>Sort {this.state.ascending ? 'Descending' : 'Ascending'}</button>
           <div>{status}</div>
-          <ol>{moves}</ol>
+          <Moves history={history} onSelect={(step) => this.jumpTo(step)}></Moves>
         </div>
       </div>
     );
