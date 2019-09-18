@@ -3,8 +3,10 @@ import ReactDOM from 'react-dom';
 import './index.css';
 
 function Square(props) {
+  const boldStyle = props.winner ? {border: '3px solid red'} : {};
   return (
     <button
+      style={boldStyle}
       className="square"
       onClick={props.onClick}
     >
@@ -18,6 +20,7 @@ class Board extends React.Component {
   renderSquare(col, row, index) {
     return (
       <Square key={index}
+        winner={this.props.winnerLine && this.props.winnerLine.indexOf(index) > -1}
         value={this.props.squares[index]}
         onClick={() => this.props.onClick(col, row, index)}
       />
@@ -133,7 +136,7 @@ class Game extends React.Component {
 
     let status;
     if (winner) {
-      status = 'Winner: ' + winner;
+      status = 'Winner: ' + winner.winner;
     } else {
       status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
     }
@@ -142,6 +145,7 @@ class Game extends React.Component {
       <div className="game">
         <div className="game-board">
           <Board
+            winnerLine={winner && winner.line}
             squares={current.squares}
             onClick={(col, row, index) => this.handleClick(col, row, index)}
           />
@@ -177,7 +181,10 @@ function calculateWinner(squares) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return {
+        winner: squares[a],
+        line: lines[i],
+      };
     }
   }
   return null;
